@@ -1,0 +1,155 @@
+/** Inplement a TRex*/
+class TRex{
+    field int x, y; // to record the location of TREX
+    field int lengthX, lengthY; // to record the lenX and lenY of TRex
+    field int state;    // current state of TRex: 1. Run1, 2.Run2, 3.JumpUp, 4.JumpDown
+    field int ground, maxHeight; // record the ground of TRex and the MaxHeight the TRex can jump
+
+    /** construct a new TRex with given location and information about gnd and maxH */
+    constructor TRex new(int dx, int dy, int gnd, int maxH){
+        let x = dx; let y = dy;
+        let lengthX = 12; let lengthY = 11;
+        let state = 1;
+        let ground = gnd; let maxHeight = maxH;
+        return this;
+    }
+
+    /**  dispose the TRex */
+    method void dispose(){
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    /** method to draw TRex*/
+    /** runMode 1*/
+    method void drawRun1() {
+        var int location;
+        var int memAddress;
+        let location = 32 * y + x; 
+        let memAddress = 16384+location;
+        do Memory.poke(memAddress+0, 0);
+        do Memory.poke(memAddress+32, 0);
+        do Memory.poke(memAddress+64, 0);
+        do Memory.poke(memAddress+96, 0);
+        do Memory.poke(memAddress+128, 0);
+        do Memory.poke(memAddress+160, 112);
+        do Memory.poke(memAddress+192, 392);
+        do Memory.poke(memAddress+224, 516);
+        do Memory.poke(memAddress+256, 1026);
+        do Memory.poke(memAddress+288, 2065);
+        do Memory.poke(memAddress+320, 2601);
+        do Memory.poke(memAddress+352, 3397);
+        do Memory.poke(memAddress+384, 2049);
+        do Memory.poke(memAddress+416, 2050);
+        do Memory.poke(memAddress+448, 1540);
+        do Memory.poke(memAddress+480, 504);
+        return;
+    }
+    /** runMode 2*/
+    method void drawRun2() {
+        var int location;
+        var int memAddress;
+        let location = 32 * y + x; 
+        let memAddress = 16384+location;
+        do Memory.poke(memAddress+0, 0);
+        do Memory.poke(memAddress+32, 0);
+        do Memory.poke(memAddress+64, 0);
+        do Memory.poke(memAddress+96, 0);
+        do Memory.poke(memAddress+128, 0);
+        do Memory.poke(memAddress+160, 0);
+        do Memory.poke(memAddress+192, 504);
+        do Memory.poke(memAddress+224, 1540);
+        do Memory.poke(memAddress+256, 2050);
+        do Memory.poke(memAddress+288, 2065);
+        do Memory.poke(memAddress+320, 2601);
+        do Memory.poke(memAddress+352, 3397);
+        do Memory.poke(memAddress+384, 2050);
+        do Memory.poke(memAddress+416, 1036);
+        do Memory.poke(memAddress+448, 1008);
+        do Memory.poke(memAddress+480, 0);
+	    return;
+    }
+    /** JumpMode */
+    method void drawJump() {
+        var int location;
+        var int memAddress;
+        let location = 32 * y + x; 
+        let memAddress = 16384+location;
+        do Memory.poke(memAddress+0, 0);
+        do Memory.poke(memAddress+32, 0);
+        do Memory.poke(memAddress+64, 0);
+        do Memory.poke(memAddress+96, 0);
+        do Memory.poke(memAddress+128, 0);
+        do Memory.poke(memAddress+160, 0);
+        do Memory.poke(memAddress+192, 504);
+        do Memory.poke(memAddress+224, 1540);
+        do Memory.poke(memAddress+256, 2050);
+        do Memory.poke(memAddress+288, 2585);
+        do Memory.poke(memAddress+320, 2337);
+        do Memory.poke(memAddress+352, 2585);
+        do Memory.poke(memAddress+384, 2050);
+        do Memory.poke(memAddress+416, 1036);
+        do Memory.poke(memAddress+448, 1008);
+        do Memory.poke(memAddress+480, 0);
+        return;
+    }
+    /** hide the dinasour */
+    method void hide(){
+        var int location;
+        var int memAddress;
+        let location = 32 * y + x; 
+        let memAddress = 16384+location;
+        do Memory.poke(memAddress+0, 0);
+        do Memory.poke(memAddress+32, 0);
+        do Memory.poke(memAddress+64, 0);
+        do Memory.poke(memAddress+96, 0);
+        do Memory.poke(memAddress+128, 0);
+        do Memory.poke(memAddress+160, 0);
+        do Memory.poke(memAddress+192, 0);
+        do Memory.poke(memAddress+224, 0);
+        do Memory.poke(memAddress+256, 0);
+        do Memory.poke(memAddress+288, 0);
+        do Memory.poke(memAddress+320, 0);
+        do Memory.poke(memAddress+352, 0);
+        do Memory.poke(memAddress+384, 0);
+        do Memory.poke(memAddress+416, 0);
+        do Memory.poke(memAddress+448, 0);
+        do Memory.poke(memAddress+480, 0);
+        return;
+    }
+
+    /** get the location of TRex */
+    method int getUp(){
+        return y - lengthY + 1;
+    }
+
+    method int getDown(){
+        return y;
+    }
+
+    method int getLeft(){
+        return x;
+    }
+    
+    method int getRight(){
+        return x + lengthX - 1;
+    }
+
+    /** set the state of TRex*/
+    method void setState(int newState){
+        let state = newState;
+    }
+
+    /** change the state of TRex according to input*/
+    method void changeState(boolean toJump){
+        var int bottom;
+        let bottom = getDown();
+        if(state == 4){ // JumpDown: check if TRex has landed
+            if(bottom < ground | bottom = ground){
+                setState(1);    // landed
+                let y = ground + 1; // in case that TRex sink into the ground
+            }
+        }
+        return;
+    }
+}
