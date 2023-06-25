@@ -25,7 +25,6 @@ class CompileEngine{
         void compileTerm();
         int compileExpressionList();
     private:
-        void printXMLtoken(Token token);
         void process(TOKENTYPE);
         void process(std::string);
         void process(std::set<std::string>);
@@ -42,7 +41,6 @@ class CompileEngine{
         SymbolTable subrountineVarTable;
         std::string className;  std::string functionName;
         size_t ifCount, whileCount;
-        std::ofstream output;
 };
 
 #endif
