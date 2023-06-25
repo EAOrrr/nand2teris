@@ -4,15 +4,15 @@
 std::string outname(std::string inname);
 class CodeWriter{
     public:
-        CodeWriter(std::string);
-        void writePush(std::string, size_t);
-        void writePop(std::string, size_t);
+        CodeWriter(const std::string&);
+        void writePush(const std::string&, size_t);
+        void writePop(const std::string&, size_t);
         void writeArithmetic(char);
-        void writeLabel(std::string);
-        void writeGoto(std::string);
-        void writeIf(std::string);
-        void writeCall(std::string, size_t);
-        void writeFunction(std::string, size_t);
+        void writeLabel(const std::string&);
+        void writeGoto(const std::string&);
+        void writeIf(const std::string&);
+        void writeCall(const std::string&, size_t);
+        void writeFunction(const std::string&, size_t);
         void writeReturn();
     private:
         std::ofstream output; 

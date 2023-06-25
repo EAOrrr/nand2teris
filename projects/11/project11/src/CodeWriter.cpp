@@ -7,33 +7,33 @@ std::string outname(std::string inname){
     return inname.replace(pos, 5, ".vm");
 }
 
-CodeWriter::CodeWriter(std::string inname):output(outname(inname)){}
+CodeWriter::CodeWriter(const std::string& inname):output(outname(inname)){}
 
-void CodeWriter::writePush(std::string segment, size_t index){
+void CodeWriter::writePush(const std::string& segment, size_t index){
     output << "push" << " " << segment << " " << index << std::endl;
 }
 
-void CodeWriter::writePop(std::string segment, size_t index){
+void CodeWriter::writePop(const std::string &segment, size_t index){
     output << "pop" << " " << segment << " " << index << std::endl;
 }
 
-void CodeWriter::writeLabel(std::string label){
+void CodeWriter::writeLabel(const std::string &label){
     output << "label " << label << std::endl;
 }
 
-void CodeWriter::writeGoto(std::string label){
+void CodeWriter::writeGoto(const std::string &label){
     output << "goto " << label <<std::endl;
 }
 
-void CodeWriter::writeIf(std::string label){
+void CodeWriter::writeIf(const std::string &label){
     output << "if-goto " << label << std::endl;
 }
 
-void CodeWriter::writeCall(std::string funcName, size_t nArgs){
+void CodeWriter::writeCall(const std::string &funcName, size_t nArgs){
     output << "call " << funcName << " " << nArgs << std::endl;
 }
 
-void CodeWriter::writeFunction(std::string funcName, size_t nVars){
+void CodeWriter::writeFunction(const std::string &funcName, size_t nVars){
     output << "function " << funcName << " " << nVars << std::endl;
 }
 

@@ -8,7 +8,7 @@
 
 class CompileEngine{
     public:
-        CompileEngine(std::string inname);
+        CompileEngine(const std::string &inname);
         void compileClass();
         void compileClassVarDec();
         void compileSubroutine();
@@ -26,10 +26,10 @@ class CompileEngine{
         int compileExpressionList();
     private:
         void process(TOKENTYPE);
-        void process(std::string);
+        void process(const std::string&);
         void process(std::set<std::string>);
-        bool processVar(std::string varName, size_t& index, std::string& kind, std::string& type);
-        void defineVarDec(std::string type, VARIABLE_KIND kind);
+        bool processVar(const std::string &varName, size_t& index, std::string& kind, std::string& type);
+        void defineVarDec(const std::string &type, VARIABLE_KIND kind);
         std::string processType();
         std::string getTokenType(Token token) const;
         std::string getCurrTokenStr() const;

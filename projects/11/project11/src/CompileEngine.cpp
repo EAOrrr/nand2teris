@@ -1,6 +1,6 @@
 #include"compileEngine.h"
 
-CompileEngine::CompileEngine(std::string inname):tokenizer(inname), writer(inname){};
+CompileEngine::CompileEngine(const std::string &inname):tokenizer(inname), writer(inname){};
 
 std::string CompileEngine::getTokenType(Token token) const{
     switch(token.first){
@@ -42,7 +42,7 @@ void CompileEngine::process(TOKENTYPE tokenType){
     advance();
 }
 
-void CompileEngine::process(std::string str){
+void CompileEngine::process(const std::string &str){
     if(getCurrTokenStr() == str){
     }
     else{
@@ -82,7 +82,7 @@ std::string CompileEngine::processType(){
     return type;
 }
 
-bool CompileEngine::processVar(std::string name, size_t& index, std::string& kind, std::string& type){
+bool CompileEngine::processVar(const std::string &name, size_t& index, std::string& kind, std::string& type){
     if(currToken.first == TOKENTYPE::INDENTIFER){
         
         std::string name = currToken.second;
@@ -104,7 +104,7 @@ bool CompileEngine::processVar(std::string name, size_t& index, std::string& kin
     }
 }
 
-void CompileEngine::defineVarDec(std::string type, VARIABLE_KIND kind){
+void CompileEngine::defineVarDec(const std::string &type, VARIABLE_KIND kind){
     if(kind == VARIABLE_KIND::ARG || kind == VARIABLE_KIND::VAR){
         subrountineVarTable.define(getCurrTokenStr(), type, kind);
     }else if(kind == VARIABLE_KIND::FIELD || kind == VARIABLE_KIND::STATIC){
