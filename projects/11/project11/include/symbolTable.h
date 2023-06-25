@@ -2,9 +2,9 @@
 #define SYMBOLTABEL_H
 
 #include"tools.h"
-class symbolTable{
+class SymbolTable{
     public:
-        symbolTable();
+        SymbolTable();
         void reset();
         void define(std::string name, std::string type, VARIABLE_KIND);
         size_t varCount(VARIABLE_KIND) const;
@@ -12,6 +12,7 @@ class symbolTable{
         std::string typeOf(std::string) const;
         size_t indexOf(std::string) const;
         bool contain(std::string) const;
+        static std::string strOfKind(VARIABLE_KIND);
     private:
         struct variable{
             std::string type;

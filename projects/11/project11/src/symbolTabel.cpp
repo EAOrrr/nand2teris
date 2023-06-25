@@ -1,15 +1,15 @@
 #include"symbolTable.h"
-symbolTable::symbolTable(){
+SymbolTable::SymbolTable(){
     reset();
 }
 
-void symbolTable::reset(){
+void SymbolTable::reset(){
     table.clear();
     argumentCount = 0;  localCount = 0;
     staticCount = 0;    fieldCount = 0;
 }
 
-void symbolTable::define(std::string name, std::string type, VARIABLE_KIND kind){
+void SymbolTable::define(std::string name, std::string type, VARIABLE_KIND kind){
     if(table.count(name)){
         std::cerr << "duplicate name" << std::endl;
         exit(EXIT_FAILURE);
@@ -38,7 +38,7 @@ void symbolTable::define(std::string name, std::string type, VARIABLE_KIND kind)
     table[name] = {type, kind, index};
 }
 
-size_t symbolTable::varCount(VARIABLE_KIND kind) const{
+size_t SymbolTable::varCount(VARIABLE_KIND kind) const{
     switch(kind){
         case VARIABLE_KIND::ARG:
             return argumentCount;
@@ -54,14 +54,14 @@ size_t symbolTable::varCount(VARIABLE_KIND kind) const{
     }
 }
 
-VARIABLE_KIND symbolTable::kindOf(std::string name) const{
+VARIABLE_KIND SymbolTable::kindOf(std::string name) const{
     if(!table.count(name)){
         std::cerr << "Cannot find variable " << name << std::endl;
         exit(EXIT_FAILURE);
     }
     return table.at(name).kind;
 }
-size_t symbolTable::indexOf(std::string name) const{
+size_t SymbolTable::indexOf(std::string name) const{
     if(!table.count(name)){
         std::cerr << "Cannot find variable " << name << std::endl;
         exit(EXIT_FAILURE);
@@ -69,7 +69,7 @@ size_t symbolTable::indexOf(std::string name) const{
     return table.at(name).index;
 }
 
-std::string symbolTable::typeOf(std::string name) const{
+std::string SymbolTable::typeOf(std::string name) const{
     if(!table.count(name)){
         std::cerr << "Cannot find variable " << name << std::endl;
         exit(EXIT_FAILURE);
@@ -77,6 +77,21 @@ std::string symbolTable::typeOf(std::string name) const{
     return table.at(name).type;
 }
 
-bool symbolTable::contain(std::string name) const{
+bool SymbolTable::contain(std::string name) const{
     return table.count(name);
+}
+
+std::string SymbolTable::strOfKind(VARIABLE_KIND kind){
+    switch (kind){
+    case VARIABLE_KIND::ARG:
+        return "argument";
+    case VARIABLE_KIND::VAR:
+        return "local";
+    case VARIABLE_KIND::FIELD:
+        return "field";
+    case VARIABLE_KIND::STATIC:
+        return "static"; 
+    default:
+        return "";
+    }
 }

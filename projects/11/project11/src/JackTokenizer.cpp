@@ -1,8 +1,7 @@
 #include"JackTokenizer.h"
 JackTokenizer::JackTokenizer(std::string inputFile):input{inputFile}{
     if(!input.is_open()){
-        std::cerr << "failed to open the file " << inputFile << std::endl;
-        exit(EXIT_FAILURE);
+        throw std::runtime_error("Failed to open file: " + inputFile);
     }
     index = 0;
 }

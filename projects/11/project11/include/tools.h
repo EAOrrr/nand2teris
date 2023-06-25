@@ -15,6 +15,12 @@ enum class TOKENTYPE{
 enum class VARIABLE_KIND{
     STATIC, FIELD, ARG, VAR, NONE
 };
+enum class SEGMENT{
+    CONSTANT, ARGUMENT, LOCAL, STATIC, THIS, THAT, POINTER, TEMP
+};
+enum class FUNCTION_TYPE{
+    CONSTRUCTOR, FUNCTION, METHOD
+};
 const std::string SYMBOLS{"{}()[].,;+-*/&|<>=~"};
 const std::string DIGITS{"0123456789"};
 const std::string VALID_IDENTIFIER{"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"};

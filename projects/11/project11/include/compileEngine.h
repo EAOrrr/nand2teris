@@ -4,6 +4,7 @@
 #include"tools.h"
 #include"JackTokenizer.h"
 #include"symbolTable.h"
+#include"codeWriter.h"
 
 class CompileEngine{
     public:
@@ -12,7 +13,7 @@ class CompileEngine{
         void compileClassVarDec();
         void compileSubroutine();
         void compileParameterList();
-        void compileSubroutineBody();
+        void compileSubroutineBody(FUNCTION_TYPE);
         void compileVarDec();
         void compileStatements();
         void compileLet();
@@ -28,7 +29,7 @@ class CompileEngine{
         void process(TOKENTYPE);
         void process(std::string);
         void process(std::set<std::string>);
-        bool processVar(std::string);
+        bool processVar(std::string varName, size_t& index, std::string& kind, std::string& type);
         void defineVarDec(std::string type, VARIABLE_KIND kind);
         std::string processType();
         std::string getTokenType(Token token) const;
@@ -36,9 +37,11 @@ class CompileEngine{
         bool advance();
         Token currToken;
         JackTokenizer tokenizer; 
-        symbolTable classVarTable;
-        symbolTable subrountineVarTable;
-        std::string className;
+        CodeWriter writer; 
+        SymbolTable classVarTable;
+        SymbolTable subrountineVarTable;
+        std::string className;  std::string functionName;
+        size_t ifCount, whileCount;
         std::ofstream output;
 };
 

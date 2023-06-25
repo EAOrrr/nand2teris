@@ -1,5 +1,5 @@
 #include"compileEngine.h"
-std::string outname(std::string inname){
+std::string outname1(std::string inname){
     size_t pos = inname.find(".jack");
     if(pos == std::string::npos){
         throw std::logic_error("Invalid input file");
@@ -7,7 +7,7 @@ std::string outname(std::string inname){
     return inname.replace(pos, 5, ".xml");
 }
 
-CompileEngine::CompileEngine(std::string inname):tokenizer(inname), output(outname(inname)){};
+CompileEngine::CompileEngine(std::string inname):tokenizer(inname), writer(inname), output(outname1(inname)){};
 
 void CompileEngine::printXMLtoken(Token token){
     output << "<" << getTokenType(token) << "> ";
@@ -24,6 +24,7 @@ void CompileEngine::printXMLtoken(Token token){
                 break;
             default:
                 std::cerr << "error" << std::endl;
+                exit(EXIT_FAILURE);
         }
     }else{
         output << token.second;
@@ -116,36 +117,23 @@ std::string CompileEngine::processType(){
     return type;
 }
 
-bool CompileEngine::processVar(std::string name){
+bool CompileEngine::processVar(std::string name, size_t& index, std::string& kind, std::string& type){
     if(currToken.first == TOKENTYPE::INDENTIFER){
         
         std::string name = currToken.second;
         if(subrountineVarTable.contain(name)){
             output << "<varName>" << std::endl;
-            switch(subrountineVarTable.kindOf(name)){
-                case VARIABLE_KIND::ARG:
-                    output << "arg ";
-                    break;
-                case VARIABLE_KIND::VAR:
-                    output << "local ";
-                    break;
-                default:
-                    break;
-            }
-            output << subrountineVarTable.typeOf(name) << " " << name << " " << subrountineVarTable.indexOf(name) << std::endl;
+            index = subrountineVarTable.indexOf(name);  type = subrountineVarTable.typeOf(name);
+            kind = SymbolTable::strOfKind(subrountineVarTable.kindOf(name));
+            output << kind;
+            output << subrountineVarTable.typeOf(name) << " " << name << " " << index << std::endl;
         }else if(classVarTable.contain(name)){
             output << "<varName>" << std::endl;
-            switch (classVarTable.kindOf(name)){
-            case VARIABLE_KIND::STATIC:
-                output << "static ";
-                break;
-            case VARIABLE_KIND::FIELD :
-                output << "field ";
-                break;
-            default:
-                break;
-            }
-            output << classVarTable.typeOf(name) << " " << name << " " << classVarTable.indexOf(name) << std::endl;
+            index = classVarTable.indexOf(name);    type = classVarTable.typeOf(name);
+            kind = SymbolTable::strOfKind(classVarTable.kindOf(name));
+            if(kind == "field") kind = "this";
+            output << kind;
+            output << classVarTable.typeOf(name) << " " << name << " " << index << std::endl;
         }
         else{
             return false;
@@ -175,7 +163,10 @@ void CompileEngine::compileClass(){
     output << "<class>" << std::endl;
     advance();
     process("class");   // 'class'
-    className = getCurrTokenStr();
+
+    /*save clsName for compile subroutine and generate label*/
+    className = getCurrTokenStr();  
+
     process(TOKENTYPE::INDENTIFER); // className(identifier)
     process("{");   // '{'
     while(getCurrTokenStr() == "static" || currToken.second == "field"){ // classVarDec
@@ -194,14 +185,13 @@ void CompileEngine::compileClassVarDec(){
     VARIABLE_KIND kind; std::string type;
     /* static | field */
     if(currToken.second == "static"){
+        // add static var to table
         kind = VARIABLE_KIND::STATIC;
         process("static");
     }else if(currToken.second == "field"){
+        // add field var to table
         kind = VARIABLE_KIND::FIELD;
         process("field");
-    }else{
-        std::cerr << "Invalid kind of class level variable" << std::endl;
-        exit(EXIT_FAILURE);
     }
     /* type */
     type = processType();
@@ -224,20 +214,27 @@ void CompileEngine::compileClassVarDec(){
 void CompileEngine::compileSubroutine(){
     output << "<subroutineDec>" << std::endl;
     subrountineVarTable.reset();
+    ifCount = 0; whileCount = 0;
+    FUNCTION_TYPE funcType;
     /* constructor | function | method */
     if(getCurrTokenStr() == "constructor"){
+        funcType = FUNCTION_TYPE::CONSTRUCTOR;
         process("constructor");
     }else if(getCurrTokenStr() == "method"){
+        funcType = FUNCTION_TYPE::METHOD;
         subrountineVarTable.define("this", className, VARIABLE_KIND::ARG);
         process("method"); 
     }else if(getCurrTokenStr() == "function"){
+        funcType = FUNCTION_TYPE::FUNCTION;
         process("function");
     }
+
     /* void | type */
-    if(getCurrTokenStr() == "void") process("void");
+    if(getCurrTokenStr() == "void"){process("void");}
     else processType();
 
     /* subroutineName(identifier) */
+    functionName = className + "." + getCurrTokenStr();   // save funcName
     process(TOKENTYPE::INDENTIFER);
 
     /*( parameterList )*/
@@ -246,7 +243,7 @@ void CompileEngine::compileSubroutine(){
     process(")");
 
     /* subroutineBody */
-    compileSubroutineBody();
+    compileSubroutineBody(funcType);
     output << "</subroutineDec>" << std::endl;
 }
 
@@ -261,7 +258,6 @@ void CompileEngine::compileParameterList(){
         while(getCurrTokenStr() == ","){
             process(",");
             type = processType();
-            // process(TOKENTYPE::INDENTIFER);
             defineVarDec(type, VARIABLE_KIND::ARG);
         }
     }
@@ -285,11 +281,26 @@ void CompileEngine::compileVarDec(){
 }
 
 /* subroutineBody: { varDec* statements }*/
-void CompileEngine::compileSubroutineBody(){
+void CompileEngine::compileSubroutineBody(FUNCTION_TYPE functionType){
     output << "<subroutineBody>" << std::endl;
     process("{");
     while(getCurrTokenStr() == "var"){
         compileVarDec();
+    }
+    // function className.functionName nVar
+    writer.writeFunction(functionName, subrountineVarTable.varCount(VARIABLE_KIND::VAR));
+    switch(functionType){
+        case FUNCTION_TYPE::CONSTRUCTOR:
+            writer.writePush("constant", classVarTable.varCount(VARIABLE_KIND::FIELD));
+            writer.writeCall("Memory.alloc", 1);       
+            writer.writePop("pointer", 0);
+            break;
+        case FUNCTION_TYPE::METHOD:
+            writer.writePush("argument", 0);
+            writer.writePop("pointer", 0); 
+            break;
+        default:
+            break;
     }
     compileStatements();
     process("}");
@@ -328,35 +339,57 @@ void CompileEngine::compileStatements(){
 /* ifStatement: if ( expr ) { statements } (else { statements } )? */
 void CompileEngine::compileIf(){
     output << "<ifStatement>" << std::endl;
+    std::string labeIfElse = "IF_ELSE"+std::to_string(ifCount);
+    std::string labelIfEnd = "if_END"+std::to_string(ifCount);
+    ifCount++;
     process("if");
     process("(");
     compileExpression();
+    writer.writeArithmetic('~');  // not
+    writer.writeIf(labeIfElse);
     process(")");
     process("{");
     compileStatements();
     process("}");
+    writer.writeGoto(labelIfEnd);
+    writer.writeLabel(labeIfElse);
     if(getCurrTokenStr() == "else"){
         process("else");
         process("{");
         compileStatements();
         process("}");
     }
+    writer.writeLabel(labelIfEnd);
     output << "</ifStatement>" << std::endl;
 }
 
 /*letStatement: let varName ([expr])? = expr ;*/
 void CompileEngine::compileLet(){
     output << "<letStatement>" << std::endl;
+    size_t index;   std::string segment; std::string type;
+    bool isArray = false;
     process("let");
     // process(TOKENTYPE::INDENTIFER);
-    processVar(getCurrTokenStr());
+    std::string varName = getCurrTokenStr();
+    processVar(varName, index, segment, type);
     if(getCurrTokenStr() == "["){
+        isArray = true;
         process("[");
+        writer.writePush(segment, index);
         compileExpression();
+        writer.writeArithmetic('+');    // add
         process("]");
     }
     process("=");
     compileExpression();
+    if(isArray){
+        writer.writePop("temp", 0);
+        writer.writePop("pointer", 1);
+        writer.writePush("temp", 0);
+        writer.writePop("that", 0);
+    }else{
+        writer.writePop(segment, index);
+    }
     process(";");
     output << "</letStatement>" << std::endl;
 }
@@ -364,13 +397,21 @@ void CompileEngine::compileLet(){
 /* whileStaement: while ( expr ) { statements }*/
 void CompileEngine::compileWhile(){
     output << "<whileStatement>" << std::endl;
+    std::string labelWhileExp = "WHILE_EXP"+std::to_string(whileCount);
+    std::string labelWhileEnd = "WHILE_END"+std::to_string(whileCount);
+    whileCount++;
     process("while");
     process("(");
+    writer.writeLabel(labelWhileExp);
     compileExpression();
+    writer.writeArithmetic('~');    // not
+    writer.writeIf(labelWhileEnd);
     process(")");
     process("{");
     compileStatements();
+    writer.writeGoto(labelWhileExp);
     process("}");
+    writer.writeLabel(labelWhileEnd);
     output << "</whileStatement>" << std::endl;
 }
 
@@ -379,7 +420,9 @@ void CompileEngine::compileReturn(){
     output << "<returnStatement>" << std::endl;
     process("return");
     if(getCurrTokenStr() != ";") compileExpression();
+    else writer.writePush("constant", 0);
     process(";");
+    writer.writeReturn();
     output << "</returnStatement>" << std::endl;
 }
 
@@ -387,28 +430,30 @@ void CompileEngine::compileReturn(){
 void CompileEngine::compileDo(){
     output << "<doStatement>" << std::endl;
     process("do");
-    /* subroutineCall: */
-    std::string name = getCurrTokenStr();
-    bool isVarName = processVar(name);
-    if(isVarName){  // varName.subroutineCall
-        process(".");
-        name = name + "." + getCurrTokenStr();
-        process(TOKENTYPE::INDENTIFER);
-    }else{
-        process(TOKENTYPE::INDENTIFER);
-        if(getCurrTokenStr() == "."){   // className.subRoutineName
-            process(".");
-            name = name + "." + getCurrTokenStr();    // whole name
-            process(TOKENTYPE::INDENTIFER);
-        }else{  // subroutine
+    compileExpression();
+    // /* subroutineCall: */
+    // std::string name = getCurrTokenStr();
+    // bool isVarName = processVar(name);
+    // if(isVarName){  // varName.subroutineCall
+    //     process(".");
+    //     name = name + "." + getCurrTokenStr();
+    //     process(TOKENTYPE::INDENTIFER);
+    // }else{
+    //     process(TOKENTYPE::INDENTIFER);
+    //     if(getCurrTokenStr() == "."){   // className.subRoutineName
+    //         process(".");
+    //         name = name + "." + getCurrTokenStr();    // whole name
+    //         process(TOKENTYPE::INDENTIFER);
+    //     }else{  // subroutine
 
-        }
-    }
-    process("(");
-    compileExpressionList();
-    process(")");
+    //     }
+    // }
+    // process("(");
+    // compileExpressionList();
+    // process(")");
 
     process(";");
+    writer.writePop("temp", 0);
     output << "</doStatement>" << std::endl;
 }
 
@@ -417,8 +462,10 @@ void CompileEngine::compileExpression(){
     output << "<expression>" << std::endl;
     compileTerm();
     while(OP.count(getCurrTokenStr())){
+        std::string op = getCurrTokenStr();
         process(OP);
         compileTerm();
+        writer.writeArithmetic(op[0]);
     }
     output << "</expression>" << std::endl;
 }
@@ -426,13 +473,29 @@ void CompileEngine::compileExpression(){
 void CompileEngine::compileTerm(){
     output << "<term>" << std::endl;
     if(currToken.first == TOKENTYPE::INT_CONST){    // integerConstant
+        writer.writePush("constant", std::stoi(getCurrTokenStr()));
         process(TOKENTYPE::INT_CONST);
     }
     else if(currToken.first == TOKENTYPE::STRING_CONST){    // stringConstant
+        /* manipulate string */
+        std::string stringConst  = getCurrTokenStr();
+        size_t  len = stringConst.length();
+        writer.writePush("constant", len);
+        writer.writeCall("String.new", 1);
+        for(auto c: stringConst){
+            writer.writePush("constant", static_cast<size_t>(c));
+            writer.writeCall("String.appendChar", 2);
+        }
         process(TOKENTYPE::STRING_CONST);
     }
     else if(currToken.first == TOKENTYPE::KEYWORD){
         if(KEYWORD_CONSTANT.count(getCurrTokenStr())){  // keywordConstant
+            if(getCurrTokenStr() == "this") writer.writePush("pointer", 0);
+            else if(getCurrTokenStr() == "null" || getCurrTokenStr() == "false") writer.writePush("constant", 0);
+            else if(getCurrTokenStr() == "true"){
+                writer.writePush("constant", 0);
+                writer.writeArithmetic('~');
+            }
             process(KEYWORD_CONSTANT);
         }
         else{
@@ -442,34 +505,52 @@ void CompileEngine::compileTerm(){
     }
     else if(currToken.first == TOKENTYPE::INDENTIFER){
         std::string name = getCurrTokenStr();
-        if(processVar(name)){
-            // varName
+        size_t index;   std::string segment, type;
+        if(processVar(name, index, segment, type)){
+            /* varName */
             if(getCurrTokenStr() == "["){   // varName[expr]
+            writer.writePush(segment, index);
             process("[");
             compileExpression();
+            writer.writeArithmetic('+');    // add
+            writer.writePop("pointer", 1);
+            writer.writePush("that", 0);
             process("]");
             }
-            else if(getCurrTokenStr()  == "."){
+            else if(getCurrTokenStr()  == "."){ // subroutine call: varName . subroutine(exprlst)
+                                                // method
                 process(".");
+                std::string subroutineName = getCurrTokenStr();
                 process(TOKENTYPE::INDENTIFER);
+                writer.writePush(segment, index);
                 process("(");
-                compileExpressionList();
+                int nArgs = compileExpressionList();
                 process(")");
+                writer.writeCall(type+"."+subroutineName, nArgs+1);
+            }
+            else{   //varName
+                writer.writePush(segment, index);
             }
         }
         else{
              process(TOKENTYPE::INDENTIFER);
-            if(getCurrTokenStr() == "("){  // subroutine call: subroutineName.(exprList)
+            if(getCurrTokenStr() == "("){  // subroutine call: subroutineName(exprList)
+                                            // method
                 process("(");
-                compileExpressionList();
+                writer.writePush("pointer", 0);
+                size_t nArgs= compileExpressionList();
                 process(")");
+                writer.writeCall(className+"."+name, nArgs+1);
                 }
-             else if(getCurrTokenStr() == "."){  // subroutine call: className|varName . subroutineName (exprList)
+             else if(getCurrTokenStr() == "."){  // subroutine call: className . subroutineName (exprList)
+                                                 // function/constructor
                 process(".");
+                std::string subroutineName = getCurrTokenStr();
                 process(TOKENTYPE::INDENTIFER);
                 process("(");
-                compileExpressionList();
+                size_t nArgs = compileExpressionList();
                 process(")");
+                writer.writeCall(name+"."+subroutineName, nArgs);
             }
         }
     }
@@ -480,8 +561,19 @@ void CompileEngine::compileTerm(){
             process(")");
         }
         else if(UNARY_OP.count(getCurrTokenStr())){ // unaryOp term
+            char unaryOp = getCurrTokenStr()[0];
             process(UNARY_OP);
-            compileTerm();
+            compileTerm(); 
+            switch(unaryOp){
+                    case '~':
+                        writer.writeArithmetic('~');
+                        break;
+                    case '-':
+                        writer.writeArithmetic('_');
+                        break;
+                    default:
+                        break;
+                }
         }
         else{
             std::cerr << "invalid symbol: " << getCurrTokenStr() << std::endl;
